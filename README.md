@@ -49,8 +49,6 @@ flowchart LR
     L[BL21 reference FASTA] --> K
 ```
 
-
-
 ## GitHub repository extras in this version
 
 This repository version also includes:
@@ -98,7 +96,7 @@ The easiest and safest workflow is:
 
 ### Why this is recommended
 
-For WSL users, paths under Windows mounted drives such as `/mnt/c/...`, especially long paths containing spaces like `My Drive`, are more fragile for some bioinformatics tools and often slower than working in the Linux filesystem. During development of this workflow, Medaka in particular was much happier once the project was run from a Linux-side directory such as:
+For WSL users, paths under Windows mounted drives such as `/mnt/c/...`, especially long paths containing spaces like `Google Drive` or `My Drive`, are more fragile for some bioinformatics tools and often slower than working in the Linux filesystem. During development of this workflow, Medaka in particular was much happier once the project was run from a Linux-side directory such as:
 
 ```text
 /home/<your_linux_username>/Nextflow_workflow_v2
@@ -151,10 +149,7 @@ This is the simplest and the method I recommend for most users.
 Example:
 
 ```bash
-nextflow run main.nf \
-  --input "data/*.fastq" \
-  --ref "refs/BL21_reference.fasta" \
-  --outdir results
+nextflow run main.nf   --input "data/*.fastq"   --ref "refs/BL21_reference.fasta"   --outdir results
 ```
 
 ### Option B: use a user-specific config file with placeholders
@@ -242,28 +237,28 @@ mkdir -p data refs results
 
 ### 4. Copy FASTQ files from Google Drive / Windows into the Linux project folder
 
-Suppose your FASTQs live in:
+Suppose your FASTQs live in this Windows folder:
 
 ```text
-C:\Users\dfpla\My Drive\Personal\Job_applications\March_2026\Biomemory_NGS_specialist\UseCase\data
+C:\Users\<WINDOWS_USERNAME>\Google Drive\<PROJECT_ROOT>\input_fastq
 ```
 
 In WSL, that is:
 
 ```text
-/mnt/c/Users/dfpla/My Drive/Personal/Job_applications/March_2026/Biomemory_NGS_specialist/UseCase/data
+/mnt/c/Users/<WINDOWS_USERNAME>/Google Drive/<PROJECT_ROOT>/input_fastq
 ```
 
 Copy uncompressed FASTQ files with:
 
 ```bash
-cp "/mnt/c/Users/dfpla/My Drive/Personal/Job_applications/March_2026/Biomemory_NGS_specialist/UseCase/data"/*.fastq data/
+cp "/mnt/c/Users/<WINDOWS_USERNAME>/Google Drive/<PROJECT_ROOT>/input_fastq"/*.fastq data/
 ```
 
 Or gzipped FASTQ files with:
 
 ```bash
-cp "/mnt/c/Users/dfpla/My Drive/Personal/Job_applications/March_2026/Biomemory_NGS_specialist/UseCase/data"/*.fastq.gz data/
+cp "/mnt/c/Users/<WINDOWS_USERNAME>/Google Drive/<PROJECT_ROOT>/input_fastq"/*.fastq.gz data/
 ```
 
 ### 5. Copy the BL21 reference FASTA into `refs/`
@@ -271,7 +266,7 @@ cp "/mnt/c/Users/dfpla/My Drive/Personal/Job_applications/March_2026/Biomemory_N
 Example:
 
 ```bash
-cp "/mnt/c/path/to/BL21_reference.fasta" refs/
+cp "/mnt/c/Users/<WINDOWS_USERNAME>/Google Drive/<PROJECT_ROOT>/refs/BL21_reference.fasta" refs/
 ```
 
 ### 6. Verify the inputs
@@ -293,29 +288,19 @@ mamba activate minion-nf
 If your reads are uncompressed:
 
 ```bash
-nextflow run main.nf \
-  --input "data/*.fastq" \
-  --ref "refs/BL21_reference.fasta" \
-  --outdir results
+nextflow run main.nf   --input "data/*.fastq"   --ref "refs/BL21_reference.fasta"   --outdir results
 ```
 
 If your reads are gzipped:
 
 ```bash
-nextflow run main.nf \
-  --input "data/*.fastq.gz" \
-  --ref "refs/BL21_reference.fasta" \
-  --outdir results
+nextflow run main.nf   --input "data/*.fastq.gz"   --ref "refs/BL21_reference.fasta"   --outdir results
 ```
 
 ### 9. Resume a failed run
 
 ```bash
-nextflow run main.nf \
-  --input "data/*.fastq" \
-  --ref "refs/BL21_reference.fasta" \
-  --outdir results \
-  -resume
+nextflow run main.nf   --input "data/*.fastq"   --ref "refs/BL21_reference.fasta"   --outdir results   -resume
 ```
 
 Adjust the input glob if using gzipped reads.
@@ -479,19 +464,19 @@ If you want the direct Windows-style WSL path, it looks like:
 
 This is the recommended pattern once the workflow completes successfully.
 
-Suppose you want to export to:
+Suppose you want to export to this Windows folder:
 
 ```text
-C:\Users\dfpla\My Drive\Personal\Job_applications\March_2026\Biomemory_NGS_specialist\UseCase\Nextflow_wf_results
+C:\Users\<WINDOWS_USERNAME>\Google Drive\<PROJECT_ROOT>\Nextflow_results
 ```
 
 In WSL:
 
 ```bash
-mkdir -p "/mnt/c/Users/dfpla/My Drive/Personal/Job_applications/March_2026/Biomemory_NGS_specialist/UseCase/Nextflow_wf_results"
-cp -r results/* "/mnt/c/Users/dfpla/My Drive/Personal/Job_applications/March_2026/Biomemory_NGS_specialist/UseCase/Nextflow_wf_results/"
-cp -v .nextflow.log "/mnt/c/Users/dfpla/My Drive/Personal/Job_applications/March_2026/Biomemory_NGS_specialist/UseCase/Nextflow_wf_results/" 2>/dev/null || true
-cp -v main.nf nextflow.config "/mnt/c/Users/dfpla/My Drive/Personal/Job_applications/March_2026/Biomemory_NGS_specialist/UseCase/Nextflow_wf_results/" 2>/dev/null || true
+mkdir -p "/mnt/c/Users/<WINDOWS_USERNAME>/Google Drive/<PROJECT_ROOT>/Nextflow_results"
+cp -r results/* "/mnt/c/Users/<WINDOWS_USERNAME>/Google Drive/<PROJECT_ROOT>/Nextflow_results/"
+cp -v .nextflow.log "/mnt/c/Users/<WINDOWS_USERNAME>/Google Drive/<PROJECT_ROOT>/Nextflow_results/" 2>/dev/null || true
+cp -v main.nf nextflow.config "/mnt/c/Users/<WINDOWS_USERNAME>/Google Drive/<PROJECT_ROOT>/Nextflow_results/" 2>/dev/null || true
 ```
 
 This will export:
@@ -580,10 +565,7 @@ nextflow run main.nf ... -resume
 ```bash
 mamba activate minion-nf
 cd ~/Nextflow_workflow_v2
-nextflow run main.nf \
-  --input "data/*.fastq" \
-  --ref "refs/BL21_reference.fasta" \
-  --outdir results
+nextflow run main.nf   --input "data/*.fastq"   --ref "refs/BL21_reference.fasta"   --outdir results
 ```
 
 ---
@@ -599,7 +581,6 @@ Use this repository as follows:
 - use CLI parameters or `conf/user_paths.config` for user-specific path choices
 
 That gives you a workflow that is easier to rerun, share, inspect, compare to Galaxy, and eventually publish.
-
 
 ---
 
@@ -634,5 +615,5 @@ git push -u origin main
 Open the repository on GitHub and confirm:
 
 - the files and folders are present
-- the README renders correctly
-- the **Actions** tab shows the `repo-checks` workflow
+- `README.md` renders properly
+- the `Actions` tab shows the repository checks workflow if enabled
