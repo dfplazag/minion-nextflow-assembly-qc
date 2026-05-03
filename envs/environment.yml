@@ -1,0 +1,14 @@
+name: minion-nf
+channels:
+  - conda-forge
+  - bioconda
+dependencies:
+  - nanoplot
+  - nanofilt
+  - raven-assembler
+  - medaka
+  - assembly-stats
+  - quast
+  - minimap2
+  - samtools
+  - python

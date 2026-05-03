@@ -1,0 +1,18 @@
+# Nextflow runtime
+work/
+results/
+.nextflow*
+.nextflow.log
+trace.txt
+timeline.html
+report.html
+dag.html
+
+# Data
+data/
+refs/
+
+# Python / misc
+__pycache__/
+*.pyc
+.DS_Store
