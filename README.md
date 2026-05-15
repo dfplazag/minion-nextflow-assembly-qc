@@ -30,6 +30,45 @@ In other words:
 
 ---
 
+## Using This Repo With AI Coding Apps
+
+Open the repository from the project root in the OpenAI Codex app or Claude Code. Use the app to inspect commands, run checks, and troubleshoot failures, while keeping large sequencing data out of Git history.
+
+Recommended folder layout for AI-assisted runs:
+
+```text
+~/Nextflow_workflow_v2/
+├── data/      # FASTQ/FASTQ.GZ files copied from Google Drive or other storage
+├── refs/      # spike-in control reference genome FASTA, e.g. BL21_reference.fasta
+├── results/   # published workflow outputs
+└── work/      # Nextflow intermediate work directory
+```
+
+Keep active runs on the Linux/WSL filesystem. Copy FASTQ files into `data/` and the spike-in control reference genome into `refs/`; after the run, archive `results/` back to Google Drive or another shared location. Avoid running directly from `C:\...`, Google Drive, or other Windows-mounted folders when possible.
+
+Useful prompts for the OpenAI Codex app or Claude Code:
+
+```text
+Inspect this repository and tell me the exact Nextflow command to run. My reads are in data/*.fastq.gz, the spike-in control reference genome is refs/BL21_reference.fasta, and outputs should go to results/.
+```
+
+```text
+Run the workflow from this repository, explain any failure in plain language, and use -resume after fixing the issue.
+```
+
+```text
+After the workflow finishes, summarize the main output folders, confirm that QUAST report.tsv files exist, and confirm that QUAST Circos plots were created under results/quast/.
+```
+
+Tips:
+
+- Ask the AI app to inspect the repository before editing `main.nf`.
+- Paste absolute paths when your data are outside the repository.
+- Keep raw FASTQ files, reference FASTA files, `work/`, and `results/` out of Git unless you intentionally want to publish them.
+- When comparing against Galaxy, ask the AI app to compare Raven FASTA/GFA, Medaka consensus FASTA, QUAST reports, and Circos plots sample by sample.
+
+---
+
 ## Workflow diagram
 
 ```mermaid
