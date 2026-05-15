@@ -48,7 +48,8 @@ jobs:
 
       - name: Markdown format check
         run: |
-          mdformat --check README.md CHANGELOG.md CONTRIBUTING.md docs/*.md
+          mdformat --check --number \
+            README.md CHANGELOG.md CONTRIBUTING.md docs/*.md
 
       - name: Install Nextflow
         run: |
@@ -57,4 +58,4 @@ jobs:
           nextflow -version
 
       - name: Basic Nextflow config parse
-        run: nextflow config -flat -c nextflow.config
+        run: nextflow -c nextflow.config config -flat
