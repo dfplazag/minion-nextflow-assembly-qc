@@ -4,6 +4,18 @@ All notable changes to this repository will be documented in this file.
 
 The format follows a simple Keep-a-Changelog style.
 
+## [0.3.0] - 2026-05-15
+
+### Added
+- QUAST now runs with `--circos` and checks that `circos/circos.png` is produced for each sample.
+
+### Changed
+- README now documents Circos plots as part of the QUAST output.
+- README validation status now reflects benchmarked parity with the original Galaxy workflow.
+
+### Notes
+- Benchmarking confirmed that the Galaxy and Nextflow workflows produce the exact same results for the validated run.
+
 ## [0.2.0] - 2026-05-03
 
 ### Added
