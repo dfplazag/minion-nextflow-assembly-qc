@@ -14,7 +14,7 @@ This repository contains a **Nextflow DSL2** workflow adapted from a Galaxy work
 
 The workflow was built for **demultiplexed MinION isolate FASTQ files** plus a **BL21 reference FASTA** used as an internal control reference.
 
----
+______________________________________________________________________
 
 ## Important status note
 
@@ -28,7 +28,7 @@ In other words:
 - the workflow logic is preserved in a reproducible Nextflow structure
 - Galaxy and Nextflow outputs matched exactly for the benchmarked validation run
 
----
+______________________________________________________________________
 
 ## Using This Repo With AI Coding Apps
 
@@ -67,7 +67,7 @@ Tips:
 - Keep raw FASTQ files, reference FASTA files, `work/`, and `results/` out of Git unless you intentionally want to publish them.
 - When comparing against Galaxy, ask the AI app to compare Raven FASTA/GFA, Medaka consensus FASTA, QUAST reports, and Circos plots sample by sample.
 
----
+______________________________________________________________________
 
 ## Workflow diagram
 
@@ -100,7 +100,7 @@ This repository version also includes:
 
 These extras make it easier to track changes, publish the project cleanly, and catch simple repository issues after pushes and pull requests.
 
----
+______________________________________________________________________
 
 ## Repository structure
 
@@ -120,7 +120,7 @@ minion_nextflow_repo/
     └── environment.yml
 ```
 
----
+______________________________________________________________________
 
 ## Recommended way to use working folders
 
@@ -148,7 +148,7 @@ For WSL users, paths under Windows mounted drives such as `/mnt/c/...`, especial
 
 That split gives you the best combination of stability and convenience.
 
----
+______________________________________________________________________
 
 ## Prerequisites
 
@@ -175,7 +175,7 @@ mamba env update -f envs/environment.yml --prune
 mamba activate minion-nf
 ```
 
----
+______________________________________________________________________
 
 ## Two ways to provide folder paths
 
@@ -238,7 +238,7 @@ That is why the repository uses:
 - placeholders in a template config file
 - explicit CLI parameters when you want full control
 
----
+______________________________________________________________________
 
 ## Step-by-step: Windows + WSL + Google Drive workflow
 
@@ -344,7 +344,7 @@ nextflow run main.nf   --input "data/*.fastq"   --ref "refs/BL21_reference.fasta
 
 Adjust the input glob if using gzipped reads.
 
----
+______________________________________________________________________
 
 ## Where files are created during a run
 
@@ -402,51 +402,59 @@ Example:
 
 This contains the final outputs copied from each process.
 
----
+______________________________________________________________________
 
 ## What results to expect when the run finishes
 
 ### `results/prefilter_qc/`
+
 Contains per-sample raw-read NanoPlot outputs:
 
 - `*.prefilter.html`
 - `*.prefilter_nanostats.txt`
 
 ### `results/prefilter_qc_summary/`
+
 Contains the combined summary table across all samples before filtering:
 
 - `prefilter_nanostats_summary.tsv`
 
 ### `results/filtered_reads/`
+
 Contains filtered reads and NanoFilt logs:
 
 - `*.filtered.fastq.gz`
 - `*.nanofilt.log`
 
 ### `results/postfilter_qc/`
+
 Contains per-sample filtered-read NanoPlot outputs:
 
 - `*.postfilter.html`
 - `*.postfilter_nanostats.txt`
 
 ### `results/postfilter_qc_summary/`
+
 Contains the combined summary table across all samples after filtering:
 
 - `postfilter_nanostats_summary.tsv`
 
 ### `results/raven/`
+
 Contains draft assemblies:
 
 - `*.raven.fasta`
 - `*.raven.gfa`
 
 ### `results/assembly_stats/`
+
 Contains draft and polished assembly statistics:
 
 - `*.draft.assembly_stats.tsv`
 - `*.polished.assembly_stats.tsv`
 
 ### `results/medaka/`
+
 Contains the Medaka output directories. The most important file is:
 
 - `consensus.fasta`
@@ -454,6 +462,7 @@ Contains the Medaka output directories. The most important file is:
 inside each sample directory.
 
 ### `results/quast/`
+
 Contains QUAST outputs per sample, including Circos plots. Most important files:
 
 - `report.tsv`
@@ -461,7 +470,7 @@ Contains QUAST outputs per sample, including Circos plots. Most important files:
 - `circos/circos.png`
 - `circos/legend.txt`
 
----
+______________________________________________________________________
 
 ## How to inspect results quickly
 
@@ -477,7 +486,7 @@ Or browse by folder:
 ls -R results
 ```
 
----
+______________________________________________________________________
 
 ## How to open the Linux project folder or results folder from Windows Explorer
 
@@ -499,7 +508,7 @@ If you want the direct Windows-style WSL path, it looks like:
 \\wsl$\Ubuntu\home\yourname\Nextflow_workflow_v2\results
 ```
 
----
+______________________________________________________________________
 
 ## How to export final results back to Google Drive
 
@@ -529,7 +538,7 @@ This will export:
 
 That makes comparison with Galaxy results much easier.
 
----
+______________________________________________________________________
 
 ## Suggested comparison strategy versus Galaxy
 
@@ -544,7 +553,7 @@ For sample-by-sample comparison, inspect:
 
 If the goal is workflow validation rather than just routine execution, compare outputs in that order.
 
----
+______________________________________________________________________
 
 ## Validation status: Galaxy parity confirmed
 
@@ -558,7 +567,7 @@ For future regression checks, the most useful files to compare are:
 - `results/quast/*/circos/circos.png`
 - the corresponding Galaxy outputs for the same sample
 
----
+______________________________________________________________________
 
 ## Troubleshooting
 
@@ -600,7 +609,7 @@ Use:
 nextflow run main.nf ... -resume
 ```
 
----
+______________________________________________________________________
 
 ## Example minimal run
 
@@ -610,7 +619,7 @@ cd ~/Nextflow_workflow_v2
 nextflow run main.nf   --input "data/*.fastq"   --ref "refs/BL21_reference.fasta"   --outdir results
 ```
 
----
+______________________________________________________________________
 
 ## Final recommendation
 
@@ -624,7 +633,7 @@ Use this repository as follows:
 
 That gives you a workflow that is easier to rerun, share, inspect, compare to Galaxy, and eventually publish.
 
----
+______________________________________________________________________
 
 ## Building this repository in your GitHub account
 
