@@ -10,7 +10,7 @@ This repository contains a **Nextflow DSL2** workflow adapted from a Galaxy work
 - draft assembly summary statistics with **assembly-stats**
 - polishing with **Medaka**
 - polished assembly summary statistics with **assembly-stats**
-- assembly evaluation against an *E. coli* BL21 reference with **QUAST**
+- assembly evaluation against an *E. coli* BL21 reference with **QUAST**, including **Circos** plots
 
 The workflow was built for **demultiplexed MinION isolate FASTQ files** plus a **BL21 reference FASTA** used as an internal control reference.
 
@@ -20,13 +20,13 @@ The workflow was built for **demultiplexed MinION isolate FASTQ files** plus a *
 
 The workflow is packaged here in a reproducible GitHub-ready structure so it can be versioned, reused, and compared against Galaxy results.
 
-At the time this repository was generated, the workflow was able to run end-to-end in Nextflow. However, the user observed a discrepancy between the **Raven draft assembly produced in Galaxy** and the **Raven draft assembly produced in Nextflow** for the BL21 control. Because of that, this repository should currently be treated as a **well-structured reproducible workflow repository**, while the **Raven parity investigation remains an active validation task**.
+Benchmarking against the original Galaxy workflow has confirmed that the Nextflow workflow produces the same results for the validated inputs, including the Raven draft assemblies. The earlier Raven parity concern for the BL21 control has been resolved.
 
 In other words:
 
-- the repository is suitable for development, comparison, reruns, and debugging
-- the workflow logic is preserved
-- but Raven output parity with Galaxy should still be verified before treating the assemblies as final production-equivalent results
+- the repository is suitable for development, comparison, reruns, and reporting
+- the workflow logic is preserved in a reproducible Nextflow structure
+- Galaxy and Nextflow outputs matched exactly for the benchmarked validation run
 
 ---
 
@@ -44,7 +44,7 @@ flowchart LR
     D --> I[MEDAKA_CONSENSUS]
     G --> I
     I --> J[POLISHED_ASSEMBLY_STATS]
-    I --> K[QUAST_ASSEMBLY_QC]
+    I --> K[QUAST_ASSEMBLY_QC + CIRCOS]
     D --> K
     L[BL21 reference FASTA] --> K
 ```
@@ -415,10 +415,12 @@ Contains the Medaka output directories. The most important file is:
 inside each sample directory.
 
 ### `results/quast/`
-Contains QUAST outputs per sample. Most important files:
+Contains QUAST outputs per sample, including Circos plots. Most important files:
 
 - `report.tsv`
 - `report.html`
+- `circos/circos.png`
+- `circos/legend.txt`
 
 ---
 
@@ -498,22 +500,23 @@ For sample-by-sample comparison, inspect:
 2. filtered FASTQ files
 3. Raven FASTA and GFA
 4. Medaka consensus FASTA
-5. QUAST `report.tsv`
+5. QUAST `report.tsv` and `circos/circos.png`
 6. assembly-stats TSV files
 
 If the goal is workflow validation rather than just routine execution, compare outputs in that order.
 
 ---
 
-## Known caveat: Raven parity investigation
+## Validation status: Galaxy parity confirmed
 
-The repository currently reflects the workflow state while Raven parity against the Galaxy implementation is still under review.
+Benchmarking against the Galaxy workflow confirmed that both workflows produce the exact same results for the validated run. The earlier Raven parity investigation is resolved.
 
-Because of that, the most useful files for debugging are:
+For future regression checks, the most useful files to compare are:
 
 - `results/raven/*.raven.fasta`
 - `results/raven/*.raven.gfa`
 - `results/quast/*/report.tsv`
+- `results/quast/*/circos/circos.png`
 - the corresponding Galaxy outputs for the same sample
 
 ---
