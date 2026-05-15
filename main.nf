@@ -11,7 +11,8 @@ nextflow.enable.dsl=2
   - The Medaka model is currently pinned to a user-selected model that matched
     the observed MinION setup during development.
   - Raven parameters reflect the Galaxy workflow prototype and are kept explicit
-    here for traceability while Raven parity is being validated.
+    here for traceability. Benchmarking against the Galaxy workflow confirmed
+    result parity for the validated inputs.
 */
 
 params.input            = 'data/*.fastq'
@@ -33,7 +34,7 @@ params.raven_mismatch         = -5
 params.raven_polishing_rounds = 2
 params.raven_window_len       = 5
 
-/* QUAST parameters (kept intentionally conservative/minimal here) */
+/* QUAST parameters */
 params.quast_threads = 4
 
 // ----------------------------
@@ -303,10 +304,12 @@ process QUAST_ASSEMBLY_QC {
       -o ${sample_id}.quast \
       -r ${ref} \
       --nanopore ${reads} \
+      --circos \
       --threads ${task.cpus}
 
     test -s ${sample_id}.quast/report.tsv
     test -s ${sample_id}.quast/report.html
+    test -s ${sample_id}.quast/circos/circos.png
     """
 }
 
