@@ -1,6 +1,21 @@
-# MinION isolate assembly + QC + BL21 reference comparison (Nextflow DSL2)
+# MinION isolate assembly + QC + reference comparison
 
-This repository contains a **Nextflow DSL2** workflow adapted from a Galaxy workflow for:
+This repository contains a **Nextflow DSL2** workflow for demultiplexed MinION isolate reads. It runs read QC, read filtering, draft assembly, polishing, assembly statistics, and QUAST reference comparison with Circos plots.
+
+The workflow was adapted from a Galaxy workflow and validated against the original Galaxy run. For the benchmarked inputs, both workflows produced matching outputs, including the Raven draft assemblies.
+
+## Who This Is For
+
+This workflow is useful if you have:
+
+- demultiplexed MinION FASTQ or FASTQ.GZ reads
+- one isolate or sample per FASTQ file
+- a reference FASTA for spike-in, control, or assembly comparison
+- a local Linux, WSL, or macOS environment with Nextflow and Conda/Mamba
+
+The workflow was validated using an *E. coli* BL21 spike-in/control reference, but you can provide any appropriate reference FASTA with `--ref`.
+
+## What The Workflow Does
 
 - raw-read QC with **NanoPlot**
 - read filtering with **NanoFilt**
@@ -10,46 +25,317 @@ This repository contains a **Nextflow DSL2** workflow adapted from a Galaxy work
 - draft assembly summary statistics with **assembly-stats**
 - polishing with **Medaka**
 - polished assembly summary statistics with **assembly-stats**
-- assembly evaluation against an *E. coli* BL21 reference with **QUAST**, including **Circos** plots
+- assembly evaluation against a supplied reference FASTA with **QUAST**
+- QUAST **Circos** plot generation for each sample
 
-The workflow was built for **demultiplexed MinION isolate FASTQ files** plus a **BL21 reference FASTA** used as an internal control reference.
+## Quick Start
 
-______________________________________________________________________
+```bash
+git clone https://github.com/dfplazag/minion-nextflow-assembly-qc.git
+cd minion-nextflow-assembly-qc
 
-## Important status note
+mamba env create -f envs/environment.yml
+mamba activate minion-nf
 
-The workflow is packaged here in a reproducible GitHub-ready structure so it can be versioned, reused, and compared against Galaxy results.
+mkdir -p data refs results
 
-Benchmarking against the original Galaxy workflow has confirmed that the Nextflow workflow produces the same results for the validated inputs, including the Raven draft assemblies. The earlier Raven parity concern for the BL21 control has been resolved.
+nextflow run main.nf \
+  --input "data/*.fastq.gz" \
+  --ref "refs/BL21_reference.fasta" \
+  --outdir results
+```
 
-In other words:
+Use `"data/*.fastq"` instead of `"data/*.fastq.gz"` if your reads are not compressed.
 
-- the repository is suitable for development, comparison, reruns, and reporting
-- the workflow logic is preserved in a reproducible Nextflow structure
-- Galaxy and Nextflow outputs matched exactly for the benchmarked validation run
+## Inputs
 
-______________________________________________________________________
+| Parameter | What it means | Example |
+| --- | --- | --- |
+| `--input` | FASTQ or FASTQ.GZ input glob for demultiplexed MinION reads | `"data/*.fastq.gz"` |
+| `--ref` | Reference FASTA for spike-in, control, or assembly comparison | `refs/BL21_reference.fasta` |
+| `--outdir` | Output folder for published results | `results` |
+
+The reference FASTA is required because QUAST uses it for assembly comparison and Circos plot generation.
+
+## Recommended Folder Layout
+
+For routine local use, keep active workflow runs in the Linux/WSL filesystem and archive final outputs elsewhere after the run finishes.
+
+```text
+minion-nextflow-assembly-qc/
+|-- data/      # FASTQ/FASTQ.GZ files copied into the working folder
+|-- refs/      # reference FASTA, for example BL21_reference.fasta
+|-- results/   # published workflow outputs
+|-- work/      # Nextflow intermediate work directory
+|-- main.nf
+|-- nextflow.config
+`-- envs/
+```
+
+For WSL users, avoid running directly from Windows-mounted paths such as `C:\...`, `/mnt/c/...`, Google Drive, or OneDrive when possible. These paths can be slower and more fragile for bioinformatics tools. A good pattern is:
+
+1. clone or copy the repository into a Linux-side folder
+2. copy FASTQ files into `data/`
+3. copy the reference genome into `refs/`
+4. run the workflow
+5. copy `results/` back to Google Drive, OneDrive, or another shared folder for storage
+
+## Outputs At A Glance
+
+| Folder | Contents |
+| --- | --- |
+| `results/prefilter_qc/` | Raw-read NanoPlot reports and NanoStats files |
+| `results/prefilter_qc_summary/` | Joined pre-filter NanoStats summary table |
+| `results/filtered_reads/` | Filtered FASTQ.GZ files and NanoFilt logs |
+| `results/postfilter_qc/` | Post-filter NanoPlot reports and NanoStats files |
+| `results/postfilter_qc_summary/` | Joined post-filter NanoStats summary table |
+| `results/raven/` | Raven draft assemblies and GFA files |
+| `results/assembly_stats/` | Draft and polished assembly statistics |
+| `results/medaka/` | Medaka polished consensus output directories |
+| `results/quast/` | QUAST reports, HTML summaries, and Circos plots |
+
+Important QUAST files include:
+
+- `report.tsv`
+- `report.html`
+- `circos/circos.png`
+- `circos/legend.txt`
+
+## Important Notes
+
+### Validation Status
+
+Benchmarking against the original Galaxy workflow confirmed that both workflows produce the exact same results for the validated run. The earlier Raven parity investigation is resolved.
+
+For future regression checks, the most useful files to compare are:
+
+- `results/raven/*.raven.fasta`
+- `results/raven/*.raven.gfa`
+- `results/medaka/*/consensus.fasta`
+- `results/quast/*/report.tsv`
+- `results/quast/*/circos/circos.png`
+
+### Medaka Model
+
+The default Medaka model is set in `main.nf`:
+
+```groovy
+params.medaka_model = 'r941_min_sup_g507'
+```
+
+Check that this model matches your sequencing chemistry and basecalling model. If needed, override it at runtime:
+
+```bash
+nextflow run main.nf \
+  --input "data/*.fastq.gz" \
+  --ref "refs/BL21_reference.fasta" \
+  --outdir results \
+  --medaka_model <model_name>
+```
+
+### What This Workflow Does Not Do
+
+This workflow does not:
+
+- basecall raw signal files
+- demultiplex POD5 or FAST5 files
+- download reference genomes automatically
+- choose the Medaka model automatically
+
+Start with demultiplexed FASTQ or FASTQ.GZ files and provide the reference FASTA yourself.
+
+## Workflow Diagram
+
+```mermaid
+flowchart LR
+    A[Input FASTQ files] --> B[NANOPLOT_PREFILTER]
+    B --> C[JOIN_NANOSTATS_PREFILTER]
+    A --> D[NANOFILT]
+    D --> E[NANOPLOT_POSTFILTER]
+    E --> F[JOIN_NANOSTATS_POSTFILTER]
+    D --> G[RAVEN_ASSEMBLY]
+    G --> H[DRAFT_ASSEMBLY_STATS]
+    D --> I[MEDAKA_CONSENSUS]
+    G --> I
+    I --> J[POLISHED_ASSEMBLY_STATS]
+    I --> K[QUAST_ASSEMBLY_QC + CIRCOS]
+    D --> K
+    L[Reference FASTA] --> K
+```
+
+## Prerequisites
+
+This repository assumes you already have:
+
+- WSL/Ubuntu on Windows, Linux, or macOS
+- Java
+- Nextflow
+- Mamba or Conda
+
+The workflow tools are listed in `envs/environment.yml`.
+
+Create the environment:
+
+```bash
+mamba env create -f envs/environment.yml
+mamba activate minion-nf
+```
+
+If the environment already exists and you want to update it:
+
+```bash
+mamba env update -f envs/environment.yml --prune
+mamba activate minion-nf
+```
+
+## Running The Workflow
+
+The simplest approach is to pass paths on the command line:
+
+```bash
+nextflow run main.nf \
+  --input "data/*.fastq.gz" \
+  --ref "refs/BL21_reference.fasta" \
+  --outdir results
+```
+
+You can resume a failed or interrupted run without recomputing successful steps:
+
+```bash
+nextflow run main.nf \
+  --input "data/*.fastq.gz" \
+  --ref "refs/BL21_reference.fasta" \
+  --outdir results \
+  -resume
+```
+
+You can also use a local config file for user-specific paths. Copy the template:
+
+```bash
+cp conf/user_paths.template.config conf/user_paths.config
+```
+
+Then edit `conf/user_paths.config`:
+
+```groovy
+params {
+  input  = '/home/yourname/minion-nextflow-assembly-qc/data/*.fastq.gz'
+  ref    = '/home/yourname/minion-nextflow-assembly-qc/refs/BL21_reference.fasta'
+  outdir = '/home/yourname/minion-nextflow-assembly-qc/results'
+}
+```
+
+Run with:
+
+```bash
+nextflow run main.nf -c conf/user_paths.config
+```
+
+For most users, command-line parameters are clearer and easier to share in notes.
+
+## Windows + WSL + Google Drive Workflow
+
+This pattern is recommended for Windows users who store sequencing data in Google Drive or another Windows-side folder.
+
+### 1. Choose A Linux-Side Project Directory
+
+```bash
+mkdir -p ~/minion-nextflow-assembly-qc
+cd ~/minion-nextflow-assembly-qc
+```
+
+### 2. Clone The Repository
+
+```bash
+git clone https://github.com/dfplazag/minion-nextflow-assembly-qc.git .
+```
+
+### 3. Create Working Folders
+
+```bash
+mkdir -p data refs results
+```
+
+### 4. Copy FASTQ Files Into `data/`
+
+Example for gzipped reads stored in Google Drive:
+
+```bash
+cp "/mnt/c/Users/<WINDOWS_USERNAME>/My Drive/<PROJECT_ROOT>/data"/*.fastq.gz data/
+```
+
+Example for uncompressed reads:
+
+```bash
+cp "/mnt/c/Users/<WINDOWS_USERNAME>/My Drive/<PROJECT_ROOT>/data"/*.fastq data/
+```
+
+### 5. Copy The Reference FASTA Into `refs/`
+
+```bash
+cp "/mnt/c/Users/<WINDOWS_USERNAME>/My Drive/<PROJECT_ROOT>/refs/BL21_reference.fasta" refs/
+```
+
+### 6. Verify Inputs
+
+```bash
+ls -lh data
+ls -lh refs
+```
+
+### 7. Run The Workflow
+
+```bash
+mamba activate minion-nf
+
+nextflow run main.nf \
+  --input "data/*.fastq.gz" \
+  --ref "refs/BL21_reference.fasta" \
+  --outdir results
+```
+
+### 8. Export Final Results Back To Google Drive
+
+```bash
+mkdir -p "/mnt/c/Users/<WINDOWS_USERNAME>/My Drive/<PROJECT_ROOT>/Nextflow_results"
+cp -r results/* "/mnt/c/Users/<WINDOWS_USERNAME>/My Drive/<PROJECT_ROOT>/Nextflow_results/"
+cp -v .nextflow.log "/mnt/c/Users/<WINDOWS_USERNAME>/My Drive/<PROJECT_ROOT>/Nextflow_results/" 2>/dev/null || true
+```
+
+## Inspecting Results Quickly
+
+List all published files:
+
+```bash
+find results -type f
+```
+
+Open the Linux project folder from Windows Explorer:
+
+```bash
+explorer.exe .
+```
+
+Open only the results folder:
+
+```bash
+explorer.exe results
+```
+
+The same folder is also available from Windows at a path like:
+
+```text
+\\wsl$\Ubuntu\home\yourname\minion-nextflow-assembly-qc\results
+```
 
 ## Using This Repo With AI Coding Apps
 
 Open the repository from the project root in the OpenAI Codex app or Claude Code. Use the app to inspect commands, run checks, and troubleshoot failures, while keeping large sequencing data out of Git history.
 
-Recommended folder layout for AI-assisted runs:
+Useful prompts:
 
 ```text
-~/Nextflow_workflow_v2/
-├── data/      # FASTQ/FASTQ.GZ files copied from Google Drive or other storage
-├── refs/      # spike-in control reference genome FASTA, e.g. BL21_reference.fasta
-├── results/   # published workflow outputs
-└── work/      # Nextflow intermediate work directory
-```
-
-Keep active runs on the Linux/WSL filesystem. Copy FASTQ files into `data/` and the spike-in control reference genome into `refs/`; after the run, archive `results/` back to Google Drive or another shared location. Avoid running directly from `C:\...`, Google Drive, or other Windows-mounted folders when possible.
-
-Useful prompts for the OpenAI Codex app or Claude Code:
-
-```text
-Inspect this repository and tell me the exact Nextflow command to run. My reads are in data/*.fastq.gz, the spike-in control reference genome is refs/BL21_reference.fasta, and outputs should go to results/.
+Inspect this repository and tell me the exact Nextflow command to run. My reads are in data/*.fastq.gz, the reference genome is refs/BL21_reference.fasta, and outputs should go to results/.
 ```
 
 ```text
@@ -67,513 +353,11 @@ Tips:
 - Keep raw FASTQ files, reference FASTA files, `work/`, and `results/` out of Git unless you intentionally want to publish them.
 - When comparing against Galaxy, ask the AI app to compare Raven FASTA/GFA, Medaka consensus FASTA, QUAST reports, and Circos plots sample by sample.
 
-______________________________________________________________________
-
-## Workflow diagram
-
-```mermaid
-flowchart LR
-    A[Input FASTQ files] --> B[NANOPLOT_PREFILTER]
-    B --> C[JOIN_NANOSTATS_PREFILTER]
-    A --> D[NANOFILT]
-    D --> E[NANOPLOT_POSTFILTER]
-    E --> F[JOIN_NANOSTATS_POSTFILTER]
-    D --> G[RAVEN_ASSEMBLY]
-    G --> H[DRAFT_ASSEMBLY_STATS]
-    D --> I[MEDAKA_CONSENSUS]
-    G --> I
-    I --> J[POLISHED_ASSEMBLY_STATS]
-    I --> K[QUAST_ASSEMBLY_QC + CIRCOS]
-    D --> K
-    L[BL21 reference FASTA] --> K
-```
-
-## GitHub repository extras in this version
-
-This repository version also includes:
-
-- `LICENSE` — MIT license
-- `CHANGELOG.md` — release history
-- `CONTRIBUTING.md` — editing and contribution guidance
-- `.github/workflows/repo-checks.yml` — lightweight GitHub Actions checks
-- `docs/publish_to_github.md` — step-by-step publishing guide
-
-These extras make it easier to track changes, publish the project cleanly, and catch simple repository issues after pushes and pull requests.
-
-______________________________________________________________________
-
-## Repository structure
-
-```text
-minion_nextflow_repo/
-├── .gitignore
-├── README.md
-├── main.nf
-├── nextflow.config
-├── bin/
-│   └── join_nanostats_summary.py
-├── conf/
-│   └── user_paths.template.config
-├── docs/
-│   └── repo_structure.md
-└── envs/
-    └── environment.yml
-```
-
-______________________________________________________________________
-
-## Recommended way to use working folders
-
-### Short version
-
-The easiest and safest workflow is:
-
-1. **keep the GitHub repository and active run directory in Linux/WSL**, not inside Google Drive
-2. **copy input FASTQ files and the BL21 reference into that Linux project directory**
-3. run Nextflow there
-4. **copy the published `results/` folder back to Google Drive** after the run completes
-
-### Why this is recommended
-
-For WSL users, paths under Windows mounted drives such as `/mnt/c/...`, especially long paths containing spaces like `Google Drive` or `My Drive`, are more fragile for some bioinformatics tools and often slower than working in the Linux filesystem. During development of this workflow, Medaka in particular was much happier once the project was run from a Linux-side directory such as:
-
-```text
-/home/<your_linux_username>/Nextflow_workflow_v2
-```
-
-### Practical rule
-
-- **Working directory for active runs:** Linux filesystem
-- **Archival/storage/comparison directory:** Google Drive / Windows filesystem
-
-That split gives you the best combination of stability and convenience.
-
-______________________________________________________________________
-
-## Prerequisites
-
-This repository assumes you already have:
-
-- WSL/Ubuntu on Windows, or Linux/macOS
-- Java installed
-- Nextflow installed
-- Mamba or Conda available
-
-The required tools are listed in `envs/environment.yml`.
-
-### Create the environment
-
-```bash
-mamba env create -f envs/environment.yml
-mamba activate minion-nf
-```
-
-If the environment already exists and you just want to update it:
-
-```bash
-mamba env update -f envs/environment.yml --prune
-mamba activate minion-nf
-```
-
-______________________________________________________________________
-
-## Two ways to provide folder paths
-
-There are two good ways to tell the workflow where your data and results live.
-
-### Option A: pass paths on the command line
-
-This is the simplest and the method I recommend for most users.
-
-Example:
-
-```bash
-nextflow run main.nf   --input "data/*.fastq"   --ref "refs/BL21_reference.fasta"   --outdir results
-```
-
-### Option B: use a user-specific config file with placeholders
-
-This repository includes:
-
-```text
-conf/user_paths.template.config
-```
-
-Copy it and edit the placeholders:
-
-```bash
-cp conf/user_paths.template.config conf/user_paths.config
-```
-
-Then replace:
-
-- `<PATH_TO_PROJECT_WORKDIR>`
-- the input glob
-- the reference FASTA path
-- the output directory
-
-Example edited file:
-
-```groovy
-params {
-  input  = '/home/yourname/Nextflow_workflow_v2/data/*.fastq'
-  ref    = '/home/yourname/Nextflow_workflow_v2/refs/BL21_reference.fasta'
-  outdir = '/home/yourname/Nextflow_workflow_v2/results'
-}
-```
-
-Run with:
-
-```bash
-nextflow run main.nf -c conf/user_paths.config
-```
-
-### Which approach is better?
-
-For this workflow, **keeping the code path-agnostic and supplying paths at runtime is better than hard-coding folder paths inside `main.nf`**.
-
-That is why the repository uses:
-
-- sensible defaults in `main.nf`
-- placeholders in a template config file
-- explicit CLI parameters when you want full control
-
-______________________________________________________________________
-
-## Step-by-step: Windows + WSL + Google Drive workflow
-
-This section is deliberately detailed.
-
-### 1. Choose your Linux-side project directory
-
-Example:
-
-```bash
-mkdir -p ~/Nextflow_workflow_v2
-cd ~/Nextflow_workflow_v2
-```
-
-### 2. Put the repository there
-
-If you cloned from GitHub:
-
-```bash
-git clone <YOUR_GITHUB_REPO_URL> ~/Nextflow_workflow_v2
-cd ~/Nextflow_workflow_v2
-```
-
-If you downloaded the repository as a ZIP, extract it and move the files into:
-
-```text
-/home/<your_linux_username>/Nextflow_workflow_v2
-```
-
-### 3. Create data and refs directories
-
-```bash
-mkdir -p data refs results
-```
-
-### 4. Copy FASTQ files from Google Drive / Windows into the Linux project folder
-
-Suppose your FASTQs live in this Windows folder:
-
-```text
-C:\Users\<WINDOWS_USERNAME>\Google Drive\<PROJECT_ROOT>\input_fastq
-```
-
-In WSL, that is:
-
-```text
-/mnt/c/Users/<WINDOWS_USERNAME>/Google Drive/<PROJECT_ROOT>/input_fastq
-```
-
-Copy uncompressed FASTQ files with:
-
-```bash
-cp "/mnt/c/Users/<WINDOWS_USERNAME>/Google Drive/<PROJECT_ROOT>/input_fastq"/*.fastq data/
-```
-
-Or gzipped FASTQ files with:
-
-```bash
-cp "/mnt/c/Users/<WINDOWS_USERNAME>/Google Drive/<PROJECT_ROOT>/input_fastq"/*.fastq.gz data/
-```
-
-### 5. Copy the BL21 reference FASTA into `refs/`
-
-Example:
-
-```bash
-cp "/mnt/c/Users/<WINDOWS_USERNAME>/Google Drive/<PROJECT_ROOT>/refs/BL21_reference.fasta" refs/
-```
-
-### 6. Verify the inputs
-
-```bash
-ls -lh data
-ls -lh refs
-```
-
-### 7. Activate the environment
-
-```bash
-source ~/.bashrc
-mamba activate minion-nf
-```
-
-### 8. Run the workflow
-
-If your reads are uncompressed:
-
-```bash
-nextflow run main.nf   --input "data/*.fastq"   --ref "refs/BL21_reference.fasta"   --outdir results
-```
-
-If your reads are gzipped:
-
-```bash
-nextflow run main.nf   --input "data/*.fastq.gz"   --ref "refs/BL21_reference.fasta"   --outdir results
-```
-
-### 9. Resume a failed run
-
-```bash
-nextflow run main.nf   --input "data/*.fastq"   --ref "refs/BL21_reference.fasta"   --outdir results   -resume
-```
-
-Adjust the input glob if using gzipped reads.
-
-______________________________________________________________________
-
-## Where files are created during a run
-
-There are **three categories of locations** to understand.
-
-### 1. The project folder
-
-Example:
-
-```text
-/home/yourname/Nextflow_workflow_v2
-```
-
-This contains:
-
-- repository files
-- `data/`
-- `refs/`
-- `results/`
-- `.nextflow.log`
-- `work/`
-
-### 2. The `work/` directory
-
-This is where Nextflow stages and executes process-specific jobs.
-
-Example:
-
-```text
-/home/yourname/Nextflow_workflow_v2/work
-```
-
-This directory is useful for:
-
-- debugging failed jobs
-- inspecting the exact command run by a process
-- retrieving intermediate files not published to `results/`
-
-Common debug files inside a process work directory include:
-
-- `.command.sh`
-- `.command.run`
-- `.command.out`
-- `.command.err`
-
-### 3. The `results/` directory
-
-This is the main published output directory you usually care about.
-
-Example:
-
-```text
-/home/yourname/Nextflow_workflow_v2/results
-```
-
-This contains the final outputs copied from each process.
-
-______________________________________________________________________
-
-## What results to expect when the run finishes
-
-### `results/prefilter_qc/`
-
-Contains per-sample raw-read NanoPlot outputs:
-
-- `*.prefilter.html`
-- `*.prefilter_nanostats.txt`
-
-### `results/prefilter_qc_summary/`
-
-Contains the combined summary table across all samples before filtering:
-
-- `prefilter_nanostats_summary.tsv`
-
-### `results/filtered_reads/`
-
-Contains filtered reads and NanoFilt logs:
-
-- `*.filtered.fastq.gz`
-- `*.nanofilt.log`
-
-### `results/postfilter_qc/`
-
-Contains per-sample filtered-read NanoPlot outputs:
-
-- `*.postfilter.html`
-- `*.postfilter_nanostats.txt`
-
-### `results/postfilter_qc_summary/`
-
-Contains the combined summary table across all samples after filtering:
-
-- `postfilter_nanostats_summary.tsv`
-
-### `results/raven/`
-
-Contains draft assemblies:
-
-- `*.raven.fasta`
-- `*.raven.gfa`
-
-### `results/assembly_stats/`
-
-Contains draft and polished assembly statistics:
-
-- `*.draft.assembly_stats.tsv`
-- `*.polished.assembly_stats.tsv`
-
-### `results/medaka/`
-
-Contains the Medaka output directories. The most important file is:
-
-- `consensus.fasta`
-
-inside each sample directory.
-
-### `results/quast/`
-
-Contains QUAST outputs per sample, including Circos plots. Most important files:
-
-- `report.tsv`
-- `report.html`
-- `circos/circos.png`
-- `circos/legend.txt`
-
-______________________________________________________________________
-
-## How to inspect results quickly
-
-List everything:
-
-```bash
-find results -type f
-```
-
-Or browse by folder:
-
-```bash
-ls -R results
-```
-
-______________________________________________________________________
-
-## How to open the Linux project folder or results folder from Windows Explorer
-
-From WSL:
-
-```bash
-explorer.exe .
-```
-
-Or just the results folder:
-
-```bash
-explorer.exe results
-```
-
-If you want the direct Windows-style WSL path, it looks like:
-
-```text
-\\wsl$\Ubuntu\home\yourname\Nextflow_workflow_v2\results
-```
-
-______________________________________________________________________
-
-## How to export final results back to Google Drive
-
-This is the recommended pattern once the workflow completes successfully.
-
-Suppose you want to export to this Windows folder:
-
-```text
-C:\Users\<WINDOWS_USERNAME>\Google Drive\<PROJECT_ROOT>\Nextflow_results
-```
-
-In WSL:
-
-```bash
-mkdir -p "/mnt/c/Users/<WINDOWS_USERNAME>/Google Drive/<PROJECT_ROOT>/Nextflow_results"
-cp -r results/* "/mnt/c/Users/<WINDOWS_USERNAME>/Google Drive/<PROJECT_ROOT>/Nextflow_results/"
-cp -v .nextflow.log "/mnt/c/Users/<WINDOWS_USERNAME>/Google Drive/<PROJECT_ROOT>/Nextflow_results/" 2>/dev/null || true
-cp -v main.nf nextflow.config "/mnt/c/Users/<WINDOWS_USERNAME>/Google Drive/<PROJECT_ROOT>/Nextflow_results/" 2>/dev/null || true
-```
-
-This will export:
-
-- final results
-- the run log
-- the workflow code used
-- the config used
-
-That makes comparison with Galaxy results much easier.
-
-______________________________________________________________________
-
-## Suggested comparison strategy versus Galaxy
-
-For sample-by-sample comparison, inspect:
-
-1. joined NanoStats summaries before and after filtering
-2. filtered FASTQ files
-3. Raven FASTA and GFA
-4. Medaka consensus FASTA
-5. QUAST `report.tsv` and `circos/circos.png`
-6. assembly-stats TSV files
-
-If the goal is workflow validation rather than just routine execution, compare outputs in that order.
-
-______________________________________________________________________
-
-## Validation status: Galaxy parity confirmed
-
-Benchmarking against the Galaxy workflow confirmed that both workflows produce the exact same results for the validated run. The earlier Raven parity investigation is resolved.
-
-For future regression checks, the most useful files to compare are:
-
-- `results/raven/*.raven.fasta`
-- `results/raven/*.raven.gfa`
-- `results/quast/*/report.tsv`
-- `results/quast/*/circos/circos.png`
-- the corresponding Galaxy outputs for the same sample
-
-______________________________________________________________________
-
 ## Troubleshooting
 
-### The workflow stops and says a process failed
+### The Workflow Stops And Says A Process Failed
 
-Check:
+Check the Nextflow log:
 
 ```bash
 tail -n 100 .nextflow.log
@@ -581,7 +365,7 @@ tail -n 100 .nextflow.log
 
 Then inspect the process work directory mentioned in the error.
 
-### I want to see the exact command Nextflow ran
+### I Want To See The Exact Command Nextflow Ran
 
 In the relevant `work/<hash>/` directory:
 
@@ -591,80 +375,61 @@ cat .command.out
 cat .command.err
 ```
 
-### I want to start again from scratch
+### I Want To Continue Without Recomputing Successful Steps
 
-Be careful with this. It removes local work products.
+Use `-resume`:
+
+```bash
+nextflow run main.nf \
+  --input "data/*.fastq.gz" \
+  --ref "refs/BL21_reference.fasta" \
+  --outdir results \
+  -resume
+```
+
+### I Want To Start Again From Scratch
+
+This removes local workflow outputs and intermediate files, so use it carefully:
 
 ```bash
 rm -rf work results .nextflow*
 ```
 
-Then rerun.
+Then rerun the workflow.
 
-### I want to continue without recomputing successful steps
-
-Use:
-
-```bash
-nextflow run main.nf ... -resume
-```
-
-______________________________________________________________________
-
-## Example minimal run
-
-```bash
-mamba activate minion-nf
-cd ~/Nextflow_workflow_v2
-nextflow run main.nf   --input "data/*.fastq"   --ref "refs/BL21_reference.fasta"   --outdir results
-```
-
-______________________________________________________________________
-
-## Final recommendation
-
-Use this repository as follows:
-
-- keep the repository itself under version control
-- keep active runs in Linux/WSL
-- keep Google Drive as the destination for exported final outputs and comparison snapshots
-- avoid hard-coding personal folder paths in `main.nf`
-- use CLI parameters or `conf/user_paths.config` for user-specific path choices
-
-That gives you a workflow that is easier to rerun, share, inspect, compare to Galaxy, and eventually publish.
-
-______________________________________________________________________
-
-## Building this repository in your GitHub account
-
-A detailed guide is included in:
+## Repository Contents
 
 ```text
-docs/publish_to_github.md
+minion-nextflow-assembly-qc/
+|-- .github/workflows/repo-checks.yml
+|-- bin/
+|   `-- join_nanostats_summary.py
+|-- conf/
+|   `-- user_paths.template.config
+|-- docs/
+|   |-- publish_to_github.md
+|   `-- repo_structure.md
+|-- envs/
+|   `-- environment.yml
+|-- CHANGELOG.md
+|-- CONTRIBUTING.md
+|-- LICENSE
+|-- README.md
+|-- main.nf
+`-- nextflow.config
 ```
 
-### Short version
+Useful supporting files:
 
-#### Create a new empty repository on GitHub
+- `envs/environment.yml`: Conda/Mamba environment definition
+- `conf/user_paths.template.config`: optional template for local paths
+- `CHANGELOG.md`: release history
+- `CONTRIBUTING.md`: contribution guidance
+- `docs/publish_to_github.md`: maintainer-oriented publishing notes
+- `.github/workflows/repo-checks.yml`: lightweight repository checks
 
-Do not add a README, license, or `.gitignore` during creation if you are going to push this prepared repository as-is.
+## License And Feedback
 
-#### Then from WSL/Linux
+This repository is released under the MIT license.
 
-```bash
-cd /path/to/minion_nextflow_repo_v2
-git init
-git branch -M main
-git add .
-git commit -m "Initial commit: Nextflow workflow repository"
-git remote add origin https://github.com/YOUR-USERNAME/YOUR-REPOSITORY.git
-git push -u origin main
-```
-
-#### After the first push
-
-Open the repository on GitHub and confirm:
-
-- the files and folders are present
-- `README.md` renders properly
-- the `Actions` tab shows the repository checks workflow if enabled
+Issues, suggestions, and example use cases from other MinION users are welcome through GitHub issues or pull requests.
