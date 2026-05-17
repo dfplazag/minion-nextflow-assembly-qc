@@ -15,7 +15,7 @@ nextflow.enable.dsl=2
     result parity for the validated inputs.
 */
 
-params.input            = 'data/*.fastq'
+params.input            = 'data/*.fastq.gz'
 params.ref              = null
 params.outdir           = 'results'
 params.nanofilt_q       = 10
